@@ -32,7 +32,8 @@ def load_data(options='iris'):
 
     Args:
         options (str, optional): (Default) iris 
-            Data 옵션 : iris | mtcars | usarrests | swiss | titanic | baseball | cars93 | airquality
+            - train : airquality, baseball, cars93, iris, mtcars, swiss, titanic, usarrests
+            - train&test : department
 
     Returns:
         train (DataFrame): data DataFrame
@@ -42,20 +43,23 @@ def load_data(options='iris'):
     test = pd.DataFrame()
 
     data_url = {
-        'usarrests':'https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/master/csv/datasets/USArrests.csv',
-        'swiss':'https://gist.githubusercontent.com/christophsax/178d34245afdd6e187b1fff72dbe7448/raw/f5f4189f949f117bee4e82e4aa75c104ed20b4f4/swiss.csv',
-        'mtcars':'https://gist.githubusercontent.com/seankross/a412dfbd88b3db70b74b/raw/5f23f993cd87c283ce766e7ac6b329ee7cc2e1d1/mtcars.csv',
-        'titanic':'https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv',
-        'baseball':'https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/master/csv/plyr/baseball.csv',
-        'cars93':'https://raw.githubusercontent.com/selva86/datasets/master/Cars93.csv',
-        'airquality':'https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/master/csv/datasets/airquality.csv',
+        'airquality':'https://github.com/ksky1313/ADP/raw/main/data/airquality.pk',
+        'baseball':'https://github.com/ksky1313/ADP/raw/main/data/baseball.pk',
+        'cars93':'https://github.com/ksky1313/ADP/raw/main/data/cars93.pk',
+        'iris':'https://github.com/ksky1313/ADP/raw/main/data/iris.pk',
+        'mtcars':'https://github.com/ksky1313/ADP/raw/main/data/mtcars.pk',
+        'swiss':'https://github.com/ksky1313/ADP/raw/main/data/swiss.pk',
+        'titanic':'https://github.com/ksky1313/ADP/raw/main/data/titanic.pk',
+        'usarrests':'https://github.com/ksky1313/ADP/raw/main/data/usarrests.pk',
+        'department_train':'https://github.com/ksky1313/ADP/raw/main/data/department_train.pk',
+        'department_test':'https://github.com/ksky1313/ADP/raw/main/data/department_test.pk',
     }
 
     if options in data_url:
         train=pd.read_csv(data_url[options])
-    else:
-        sns.load_dataset('iris')
-        train = sns.load_dataset('iris')
+    elif 'department':
+        train=pd.read_csv(data_url['department_train'])
+        test=pd.read_csv(data_url['department_test'])
         
     return train, test
 
