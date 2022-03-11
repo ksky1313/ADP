@@ -56,10 +56,10 @@ def load_data(options='iris'):
     }
 
     if options in data_url:
-        train=pd.read_csv(data_url[options])
+        train=pd.read_pickle(data_url[options])
     elif 'department':
-        train=pd.read_csv(data_url['department_train'])
-        test=pd.read_csv(data_url['department_test'])
+        train=pd.read_pickle(data_url['department_train'])
+        test=pd.read_pickle(data_url['department_test'])
         
     return train, test
 
