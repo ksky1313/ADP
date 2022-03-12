@@ -19,12 +19,16 @@ from sklearn.decomposition import FactorAnalysis
 from sklearn.datasets import load_iris
 
 # 시각화
-import seaborn as sns
 import matplotlib.pyplot as plt
+import seaborn as sns
+
 plt.rcParams['figure.figsize'] = (7, 5)
 plt.rcParams['font.family'] = 'Malgun Gothic'
 plt.rcParams['font.size'] = 12
 plt.rcParams['axes.unicode_minus'] = False
+
+sns.set(style='darkgrid')
+%matplotlib inline
 
 
 def load_data(options='iris'):
@@ -32,8 +36,9 @@ def load_data(options='iris'):
 
     Args:
         options (str, optional): (Default) iris 
-            - train : airquality, baseball, cars93, iris, mtcars, swiss, titanic, usarrests
-            - train&test : department
+            - train :       airquality, baseball, cars93, fifa, iris,
+                            mtcars, swiss, titanic, usarrests
+            - train&test :  department
 
     Returns:
         train (DataFrame): data DataFrame
@@ -46,6 +51,7 @@ def load_data(options='iris'):
         'airquality':'https://github.com/ksky1313/ADP/raw/main/data/airquality.pk',
         'baseball':'https://github.com/ksky1313/ADP/raw/main/data/baseball.pk',
         'cars93':'https://github.com/ksky1313/ADP/raw/main/data/cars93.pk',
+        'fifa':'https://github.com/ksky1313/ADP/raw/main/data/fifa.pk',
         'iris':'https://github.com/ksky1313/ADP/raw/main/data/iris.pk',
         'mtcars':'https://github.com/ksky1313/ADP/raw/main/data/mtcars.pk',
         'swiss':'https://github.com/ksky1313/ADP/raw/main/data/swiss.pk',
