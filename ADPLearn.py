@@ -20,6 +20,8 @@ from sklearn.datasets import load_iris
 
 # 시각화
 import matplotlib.pyplot as plt
+# %matplotlib inline
+
 import seaborn as sns
 
 plt.rcParams['figure.figsize'] = (7, 5)
@@ -28,8 +30,6 @@ plt.rcParams['font.size'] = 12
 plt.rcParams['axes.unicode_minus'] = False
 
 sns.set(style='darkgrid')
-%matplotlib inline
-
 
 def load_data(options='iris'):
     """ADP 학습, 테스트 데이터 제공
