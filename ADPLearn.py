@@ -48,24 +48,24 @@ def load_data(options='iris'):
     test = pd.DataFrame()
 
     data_url = {
-        'airquality':'https://github.com/ksky1313/ADP/raw/main/data/airquality.pk',
-        'baseball':'https://github.com/ksky1313/ADP/raw/main/data/baseball.pk',
-        'cars93':'https://github.com/ksky1313/ADP/raw/main/data/cars93.pk',
-        'fifa':'https://github.com/ksky1313/ADP/raw/main/data/fifa.pk',
-        'iris':'https://github.com/ksky1313/ADP/raw/main/data/iris.pk',
-        'mtcars':'https://github.com/ksky1313/ADP/raw/main/data/mtcars.pk',
-        'swiss':'https://github.com/ksky1313/ADP/raw/main/data/swiss.pk',
-        'titanic':'https://github.com/ksky1313/ADP/raw/main/data/titanic.pk',
-        'usarrests':'https://github.com/ksky1313/ADP/raw/main/data/usarrests.pk',
-        'department_train':'https://github.com/ksky1313/ADP/raw/main/data/department_train.pk',
-        'department_test':'https://github.com/ksky1313/ADP/raw/main/data/department_test.pk',
+        'airquality':'https://github.com/ksky1313/ADP/raw/main/data/airquality.csv',
+        'baseball':'https://github.com/ksky1313/ADP/raw/main/data/baseball.csv',
+        'cars93':'https://github.com/ksky1313/ADP/raw/main/data/cars93.csv',
+        'fifa':'https://github.com/ksky1313/ADP/raw/main/data/fifa.csv',
+        'iris':'https://github.com/ksky1313/ADP/raw/main/data/iris.csv',
+        'mtcars':'https://github.com/ksky1313/ADP/raw/main/data/mtcars.csv',
+        'swiss':'https://github.com/ksky1313/ADP/raw/main/data/swiss.csv',
+        'titanic':'https://github.com/ksky1313/ADP/raw/main/data/titanic.csv',
+        'usarrests':'https://github.com/ksky1313/ADP/raw/main/data/usarrests.csv',
+        'department_train':'https://github.com/ksky1313/ADP/raw/main/data/department_train.csv',
+        'department_test':'https://github.com/ksky1313/ADP/raw/main/data/department_test.csv',
     }
 
     if options in data_url:
-        train=pd.read_pickle(data_url[options])
+        train=pd.read_csv(data_url[options])
     elif 'department':
-        train=pd.read_pickle(data_url['department_train'])
-        test=pd.read_pickle(data_url['department_test'])
+        train=pd.read_csv(data_url['department_train'])
+        test=pd.read_csv(data_url['department_test'])
         
     return train, test
 
@@ -111,15 +111,16 @@ def test_fa(df, options='bartlett'):
     """
 
     t_r, t_pass = [], False
+    non_category = df.columns[df.dtypes != 'object']
 
     # 관측된 변수들의 상호 연관성 확인
     if options == 'bartlett':
-        chi_square_value, p_value = calculate_bartlett_sphericity(df)
+        chi_square_value, p_value = calculate_bartlett_sphericity(df[non_category])
         t_r.append(['chi_square_value', chi_square_value])
         t_pass = (p_value < 0.05 )
     # 과늑 변수와 전체 모형의 적합성 결정(0~1 사이, 0.6미만이면 부적합)
     elif options == 'kmo':
-        kmo_all, kmo_model=calculate_kmo(df)
+        kmo_all, kmo_model=calculate_kmo(df[non_category])
         t_r.append(['kmo_all', kmo_all])
         t_pass = (kmo_model >= 0.6 )
 
@@ -279,3 +280,51 @@ def pca(df, cev:float=0.9):
     loadings = pd.DataFrame(data=pca.components_.T, index=tdf.columns, columns=columns)
     pca_df = pd.DataFrame(data=pca_comp, index=tdf.index, columns=columns)
     return n_components+1, s[n_components], loadings, pca_df
+
+def eda_chart(df, kind, **krargs):
+    """_summary_
+        kind
+    Args:
+        df (_type_): _description_
+        kind (str): None
+            - train :       corr, pair
+                            c1_n1_box, c1_n1_strip, c1_n1_violin
+                            c1_n1_h1_violin
+    """
+    c, n, hue = None, None, None
+    for k, v in krargs.items():
+        if k=='c':
+            c = krargs['c']
+        elif k=='n':
+            n = krargs['n']
+        elif k=='hue':
+            hue = krargs['hue']
+    
+    ## 상관관계 그래프
+    if kind == 'corr':
+        sns.heatmap(df.corr(), annot=True, vmax = 1,vmin = -1, 
+                    cmap='coolwarm', linewidths=.5, fmt='.2f').set_title('Correlation')
+    elif kind == 'na_heat':
+        sns.heatmap(df[df.columns[df.dtypes != 'object']].T, 
+                    cmap='Greens', linewidths=.5,).set_title('num_range')
+    elif kind == 'pair':
+        g = sns.pairplot(df, hue=hue, corner=True)
+        g.fig.subplots_adjust(top=0.95)
+        g.fig.suptitle('Pair')
+    elif kind == 'c1_n1_box':
+        g =sns.catplot(x=n, y=c, data=df, kind='box')
+        g.fig.subplots_adjust(top=0.95)
+        g.fig.suptitle(c)
+    elif kind == 'c1_n1_strip':
+        g =sns.catplot(x=n, y=c, data=df, kind='strip', alpha=.7, s=3)
+        g.fig.subplots_adjust(top=0.95)
+        g.fig.suptitle(c)
+    elif kind == 'c1_n1_violin':
+        g =sns.catplot(x=n, y=c, data=df, kind='violin', palette="coolwarm")
+        g.fig.subplots_adjust(top=0.95)
+        g.fig.suptitle(c)
+    elif kind == 'c1_n1_h1_violin':
+        g =sns.catplot(x=c, y=n, data=df, hue=hue, kind='violin', alpha=.7, split=True)
+        g.fig.subplots_adjust(top=0.95)
+        g.fig.suptitle(c)
+    plt.show()
