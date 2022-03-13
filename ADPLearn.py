@@ -23,13 +23,13 @@ import matplotlib.pyplot as plt
 # %matplotlib inline
 
 import seaborn as sns
+sns.set(style='darkgrid')
 
 plt.rcParams['figure.figsize'] = (7, 5)
 plt.rcParams['font.family'] = 'Malgun Gothic'
 plt.rcParams['font.size'] = 12
 plt.rcParams['axes.unicode_minus'] = False
 
-sns.set(style='darkgrid')
 
 def load_data(options='iris'):
     """ADP 학습, 테스트 데이터 제공
