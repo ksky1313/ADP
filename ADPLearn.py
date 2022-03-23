@@ -2,33 +2,33 @@
 import numpy as np
 import pandas as pd
 
-# # 정규화 
-# from sklearn.preprocessing import StandardScaler, MinMaxScaler
+# 정규화 
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
-# # 주성분 분석
-# from sklearn.decomposition import PCA
+# 주성분 분석
+from sklearn.decomposition import PCA
 
-# # 요인분석
-# import pingouin as pg
-# from factor_analyzer.factor_analyzer import calculate_bartlett_sphericity
-# from factor_analyzer.factor_analyzer import calculate_kmo
-# from factor_analyzer import FactorAnalyzer
-# from sklearn.decomposition import FactorAnalysis
+# 요인분석
+import pingouin as pg
+from factor_analyzer.factor_analyzer import calculate_bartlett_sphericity
+from factor_analyzer.factor_analyzer import calculate_kmo
+from factor_analyzer import FactorAnalyzer
+from sklearn.decomposition import FactorAnalysis
 
-# # 데이터셋
-# from sklearn.datasets import load_iris
+# 데이터셋
+from sklearn.datasets import load_iris
 
-# # 시각화
-# import matplotlib.pyplot as plt
-# # %matplotlib inline
+# 시각화
+import matplotlib.pyplot as plt
+# %matplotlib inline
 
-# import seaborn as sns
-# sns.set(style='darkgrid')
+import seaborn as sns
+sns.set(style='darkgrid')
 
-# plt.rcParams['figure.figsize'] = (7, 5)
-# plt.rcParams['font.family'] = 'Malgun Gothic'
-# plt.rcParams['font.size'] = 12
-# plt.rcParams['axes.unicode_minus'] = False
+plt.rcParams['figure.figsize'] = (7, 5)
+plt.rcParams['font.family'] = 'Malgun Gothic'
+plt.rcParams['font.size'] = 12
+plt.rcParams['axes.unicode_minus'] = False
 
 
 def load_data(options='iris'):
