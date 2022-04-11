@@ -1,200 +1,267 @@
-# 기본
-import numpy as np
-import pandas as pd
+# 데이터 변수별 컬럼타입과 na, unique 갯수 체크
+def eda_features(df, round=3):
+    rtn = pd.DataFrame(
+        data={
+            'dtypes':df.dtypes.values,
+            'count':df.count().values,
+            'nunique':df.nunique().values,
+            'nduplicate':df.count().values-df.nunique().values,
+            'na':df.isna().sum().values,
+        },
+        index = df.columns
+    )
+    return rtn
 
-# 정규화 
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-
-# 주성분 분석
-from sklearn.decomposition import PCA
-
-# 요인분석
-import pingouin as pg
-from factor_analyzer.factor_analyzer import calculate_bartlett_sphericity
-from factor_analyzer.factor_analyzer import calculate_kmo
-from factor_analyzer import FactorAnalyzer
-from sklearn.decomposition import FactorAnalysis
-
-# 데이터셋
-from sklearn.datasets import load_iris
-
-# 시각화
-import matplotlib.pyplot as plt
-# %matplotlib inline
-
-import seaborn as sns
-sns.set(style='darkgrid')
-
-plt.rcParams['figure.figsize'] = (7, 5)
-plt.rcParams['font.family'] = 'Malgun Gothic'
-plt.rcParams['font.size'] = 12
-plt.rcParams['axes.unicode_minus'] = False
-
-
-def test_fa(df, options='bartlett'):
-    """요인분석 적정성 검사
-
-    Args:
-        df (DataFrame): Test target DataFrame
-        options (str, optional): (Default)'bartlett' | 'kmo'
-
-    Returns:
-        t_r (DataFrame): Transformed DataFrame
-        t_pass (bool): Test result
-    """
-
-    t_r, t_pass = [], False
-    non_category = df.columns[df.dtypes != 'object']
-
-    # 관측된 변수들의 상호 연관성 확인
-    if options == 'bartlett':
-        chi_square_value, p_value = calculate_bartlett_sphericity(df[non_category])
-        t_r.append(['chi_square_value', chi_square_value])
-        t_pass = (p_value < 0.05 )
-    # 과늑 변수와 전체 모형의 적합성 결정(0~1 사이, 0.6미만이면 부적합)
-    elif options == 'kmo':
-        kmo_all, kmo_model=calculate_kmo(df[non_category])
-        t_r.append(['kmo_all', kmo_all])
-        t_pass = (kmo_model >= 0.6 )
-
-    return t_r, t_pass
+# 데이터 변수별 범위를 조회
+def eda_range(df, round=3):
+    rtn = pd.DataFrame(
+        data={
+            'dtypes':df.dtypes.values
+        },
+        index = df.columns
+    )
+    for c in df.columns:
+        isnum = df[c].dtypes not in [ 'object', 'category' ]
+        Q3, Q1 = df[c].quantile([.75, .25]) if isnum else [0, 0]
+        rtn.loc[c, 'mean'] = np.round(df[c].mean(), round) if isnum else ''
+        rtn.loc[c, 'std'] = np.round(df[c].std(), round) if isnum else ''
+        rtn.loc[c, 'max'] = np.round(df[c].max(), round) if isnum else ''
+        rtn.loc[c, 'Q3'] = np.round(Q3, round) if isnum else ''
+        rtn.loc[c, 'Q2'] = np.round(df[c].median(), round) if isnum else ''
+        rtn.loc[c, 'Q1'] = np.round(Q1, round) if isnum else ''
+        rtn.loc[c, 'min'] = np.round(df[c].min(), round) if isnum else ''
+    return rtn
 
 
-def factor_analysis(df, cev:float=0.85):
-    """요인 분석
+# 데이터 변수별 na와 %를 조회
+def eda_na(df, sort=True, round=3):
+    rtn = pd.DataFrame(
+        data={
+            'dtypes':df.dtypes.values,
+            'count':df.count().values,
+            'na':df.isna().sum().values,
+        },
+        index = df.columns
+    )
+    rtn['na(%)'] = np.round(rtn['na']/df.shape[0]*100, 2)
+    return rtn.sort_values('na', ascending=False) if sort else rtn
 
-    Args:
-        df (DataFrame): Original DataFrame
-        cev (Float, optional) : (Default) 0.85, Minimum Cumulative Eigen Value
+def eda_outlier(df, sort=True, round=3):
+    rtn = pd.DataFrame(
+        data={
+            'dtypes':df.dtypes.values,
+            'count':df.count().values,
+        },
+        index = df.columns
+    )
+    for c in df.columns:
+        isnum = df[c].dtypes not in [ 'object', 'category' ]
+        Q3, Q1 = df[c].quantile([.75, .25]) if isnum else [0, 0]
+        UL, LL = Q3+1.5*(Q3-Q1), Q1-1.5*(Q3-Q1)
+        rtn.loc[c, 'noutlier'] = df.loc[(df[c] < LL) | (df[c] > UL), c].count() if isnum else ''
+        rtn.loc[c, 'noutlier(%)'] = np.round((df.loc[(df[c]<LL)|(df[c]>UL), c].count()/df[c].count())*100, round)  if isnum else ''
+        rtn.loc[c, 'top'] = np.round(Q3+1.5*(Q3-Q1), round) if isnum else ''
+        rtn.loc[c, 'bottom'] = np.round(Q1-1.5*(Q3-Q1), round) if isnum else ''
+        rtn.loc[c, 'ntop'] = np.sum(df[c] > UL) if isnum else ''
+        rtn.loc[c, 'nbottom'] = np.sum(df[c] < LL) if isnum else ''
+    return rtn.sort_values('noutlier', ascending=False) if sort else rtn
 
-    Returns:
-        ncom (Int): the number of Factor Analysis components
-        cev (Float): Cumulative Eigen Value
-        lodings (DataFrame): components_.T result
-        fa_df (DataFrame): Transformed DataFrame
-
-    """
-    non_category = df.columns[df.dtypes != 'object']
-    tdf = pd.DataFrame(data=df[non_category], columns = non_category)
-
-    # 최대 갯수로 요인분석 실행
-    ncomp = tdf.shape[1]
-    fa = FactorAnalyzer()
-    fa.fit(tdf, ncomp)
-    ev, v = fa.get_eigenvalues()
-
-    # 차트로 표현
-    x = range(1, ncomp+1)
-    y = ev
-    s = np.cumsum(ev)
-    e = [cev*ncomp] * ncomp
-
-    plt.title('Factor Analysis [ ncomp {} ]'.format(ncomp))
-    plt.ylim(0,ncomp+1)
-    plt.xticks(x)
-    plt.xlabel('Components')
-    plt.ylabel('Cumulative Eigen Value')
-    plt.grid(axis='y', color='blue', alpha=0.2, linestyle=':')
-
-    plt.plot(x, e, 'g:', alpha=0.5)
-    plt.text(x[0]-0.01, e[0], '{:.2f}'.format(cev), ha='right', color='g')
-
-    plt.bar(x, y, color='grey', width=0.4, alpha=0.2)
-    plt.plot(x, s, 'bo-')
-
-    n_components = -1
-    for idx, cs in enumerate(s):
-        plt.text(x[idx], 0.3, 'fa{}'.format(idx+1), ha='center')
-
-        if cev*ncomp <= cs and n_components == -1:
-            plt.text(x[idx], cs+0.2, '{:.2f}'.format(cs), ha='center', color='r')
-            n_components = idx
+import scipy.stats as stats
+from sklearn.preprocessing import OrdinalEncoder
+def eda_corr(df, target, round=3):
+    tmp = df[df[target].notna()].copy()
+    for c in df.columns:
+        if tmp[c].dtypes in [ 'object', 'category' ]:
+            tmp[c] = OrdinalEncoder().fit_transform(tmp[[c]])
+    rtn = pd.DataFrame(data={'dtypes':df.dtypes.values}, index = df.columns)
+    target_type = 'num' if df[target].dtypes not in [ 'object', 'category' ] else 'cat'
+    for c in tmp.columns:
+        tmp_c = tmp[tmp[c].notna()] 
+        c_type = 'num' if df[c].dtypes not in [ 'object', 'category' ] else 'cat'
+        if target_type == 'num' and target_type == c_type:
+            rtn.loc[c, 'pearsonr'] = np.round(stats.pearsonr(tmp_c[target], tmp_c[c])[0], round)
+            rtn.loc[c, 'spearmanr'] = np.round(stats.spearmanr(tmp_c[target], tmp_c[c])[0], round)
+            rtn.loc[c, 'kendalltau'] = np.round(stats.kendalltau(tmp_c[target], tmp_c[c])[0], round)
         else:
-            plt.text(x[idx], cs+0.2, '{:.2f}'.format(cs), ha='center', color='b')
+            rtn.loc[c, 'pearsonr'] = ''
+            rtn.loc[c, 'spearmanr'] = np.round(stats.spearmanr(tmp_c[target], tmp_c[c])[0], round)
+            rtn.loc[c, 'kendalltau'] = np.round(stats.kendalltau(tmp_c[target], tmp_c[c])[0], round)
+    return rtn
 
-    plt.show()
-    
-    # 최적 갯수 요인 분석 실행
-    fa = FactorAnalysis(n_components=n_components+1)
-    fa_comp = fa.fit_transform(tdf)
+# 카테고리 변수 그룹별 평균의 차이 비교
+from statsmodels.formula.api import ols
+from statsmodels.stats.anova import anova_lm
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
+def eda_anova(df, groups, endog):
+    model = ols(endog+'~ C('+groups+')', df).fit()
+    al = anova_lm(model)
+    print(al)
+    if al.iloc[0, -1] < 0.05:
+        tmp = df[[endog, groups]].dropna()
+        posthoc = pairwise_tukeyhsd(endog=tmp[endog], groups=tmp[groups], alpha=0.05)
+        print('\n', posthoc)
+    return al.iloc[0, -1]
 
-    # 결과 리턴
-    columns = columns=[ 'fa_' + str(i) for i in range(1, n_components+2) ]
-    loadings = pd.DataFrame(data=fa.components_.T, index=tdf.columns, columns=columns)
-    fa_df = pd.DataFrame(data=fa_comp, index=tdf.index, columns=columns)
-    return n_components+1, s[n_components], loadings, fa_df
+def eda_chi2(df, cat1, cat2, round=3):
+    contingency = pd.crosstab(df[cat1], df[cat2])
+    _, pvalue, _, expected = stats.chi2_contingency(contingency, correction=False)  
+    expected = np.round(pd.DataFrame(data=expected), round)
+    expected.columns = contingency.columns
+    contingency = np.round(contingency, 3)
+    contingency['Type'] = '관측'
+    expected['Type'] = '예측'
+    c = pd.concat([contingency, expected])
+    return pvalue, c.reset_index().rename(columns={'index':cat1}).set_index(['Type', cat1])
 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+%matplotlib inline
 
-def cronbach_alpha(df, loadings, min_loadings:float=0.7):
-    """크론바흐 알파 : 요인분석 결과 검정에 활용
+def plot_decision_boundaries(X, y, model_class, **model_params):
+    X = np.array(X)
+    y = np.array(y).flatten()
+    reduced_data = X[:, :2]
+    model = model_class(**model_params).fit(reduced_data, y)
 
-    Args:
-        df (_type_): Original DataFrame
-        loadings (_type_): The loading value DataFrame as a result of a factor analysis
-        min_loadings (float, optional): (Defaults) 0.7, Minimum loading value
+    h = .02     # point in the mesh [x_min, m_max]x[y_min, y_max].    
 
-    Returns:
-        t_r (list): 요인별 크론바흐 알파 값
-    """
+    x_min, x_max = reduced_data[:, 0].min() - 1, reduced_data[:, 0].max() + 1
+    y_min, y_max = reduced_data[:, 1].min() - 1, reduced_data[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+    Z = model.predict(np.c_[xx.ravel(), yy.ravel()])    
 
-    t_r = []
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.1), np.arange(y_min, y_max, 0.1))
+    Z = model.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)
 
-    for c in loadings.columns:
-        idx = loadings[c].loc[loadings[c] > min_loadings].index
+    plt.contourf(xx, yy, Z, alpha=0.4, cmap=plt.cm.Greys)
+    plt.scatter(X[:, 0], X[:, 1], c=y, s=15, alpha=0.5, cmap=plt.cm.viridis)
+    plt.xlabel("Feature-1")
+    plt.ylabel("Feature-2")
+    return plt
 
-        # 적어도 변수가 2개 이상이어야 크론바흐 알파 값 계산 가능
-        if len(idx) >= 2:
-            factor_alpha = pg.cronbach_alpha(df[idx])
-            t_r.append({c:factor_alpha})
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+def reg_vif(df, sort=True):
+    rtn = pd.DataFrame(
+        data = [ variance_inflation_factor(df.values, i) for i in range(df.shape[1]) ],
+        columns = ['VIF'],
+        index = df.columns
+        )
+    return rtn.sort_values('VIF', ascending=False) if sort else rtn
 
-    return t_r
+def reg_equation(name, model, round=3):
+    rtn = pd.DataFrame(
+        data=np.round(model.coef_, round).reshape(1,-1),\
+        columns=model.feature_names_in_,\
+        index=[name])
+    rtn['Intercept'] = np.round(model.intercept_, round)
+    return rtn[np.insert(rtn.columns[:-1], 0, rtn.columns[-1])]
 
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+def reg_score(name, y_test, y_pred):
+    rtn = pd.DataFrame(
+        data = [
+            np.round(mean_absolute_error(y_test, y_pred), 3),
+            np.round(mean_squared_error(y_test, y_pred), 3),
+            np.round(np.sqrt(mean_squared_error(y_test, y_pred)), 3),
+            np.round(r2_score(y_test, y_pred), 3)
+            ],
+        columns = [name],
+        index=['mae', 'mse', 'rmse', 'r2']
+    )
+    return rtn
 
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.svm import SVR
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.neural_network import MLPRegressor
+from sklearn.ensemble import SGDRegressor, BaggingRegressor, RandomForestRegressor
+from sklearn.ensemble import ExtraTreesRegressor, AdaBoostRegressor, GradientBoostingRegressor
+def reg_model_test(X, y, train_size=.75, sort=True):
+    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=train_size, random_state=13)
+    models = {
+        'LinearRegression' : LinearRegression(fit_intercept=True),
+        'Lasso' : Lasso(alpha=0, max_iter=10000),
+        'Ridge' : Ridge(alpha=1, max_iter=10000),
+        'SGDRegressor' : SGDRegressor(penalty='l1', max_iter = 50, alpha = 0.001, early_stopping = True, n_iter_no_change = 3),
+        'MLPRegressor' : MLPRegressor(max_iter = 5000, alpha = 0.1, verbose = False, early_stopping = True, hidden_layer_sizes = (100, 10)),
+        'KNeighborsRegressor' : KNeighborsRegressor(n_neighbors = 5),
+        'SVR' : SVR(),
+        'DecisionTreeRegressor' : DecisionTreeRegressor(),
+        'BaggingRegressor' : BaggingRegressor(),
+        'RandomForestRegressor' : RandomForestRegressor(),
+        'ExtraTreesRegressor' : ExtraTreesRegressor(),
+        'AdaBoostRegressor' : AdaBoostRegressor(),
+        'GradientBoostingRegressor' : GradientBoostingRegressor(),
+    }
+    results = []
+    for name, model in models.items():
+        model.fit(X_train, y_train)
+        results.append(reg_score(name, y_test, model.predict(X_test)).T)
+    return pd.concat(results).sort_values('r2', ascending=False) if sort else pd.concat(results)
 
-def eda_chart(df, kind, **krargs):
-    """_summary_
-        kind
-    Args:
-        df (_type_): _description_
-        kind (str): None
-            - train :       corr, pair
-                            c1_n1_box, c1_n1_strip, c1_n1_violin
-                            c1_n1_h1_violin
-    """
-    c, n, hue = None, None, None
-    for k, v in krargs.items():
-        if k=='c':
-            c = krargs['c']
-        elif k=='n':
-            n = krargs['n']
-        elif k=='hue':
-            hue = krargs['hue']
-    
-    ## 상관관계 그래프
-    if kind == 'corr':
-        sns.heatmap(df.corr(), annot=True, vmax = 1,vmin = -1, 
-                    cmap='coolwarm', linewidths=.5, fmt='.2f').set_title('Correlation')
-    elif kind == 'na_heat':
-        sns.heatmap(df[df.columns[df.dtypes != 'object']].T, 
-                    cmap='Greens', linewidths=.5,).set_title('num_range')
-    elif kind == 'pair':
-        g = sns.pairplot(df, hue=hue, corner=True)
-        g.fig.subplots_adjust(top=0.95)
-        g.fig.suptitle('Pair')
-    elif kind == 'c1_n1_box':
-        g =sns.catplot(x=n, y=c, data=df, kind='box')
-        g.fig.subplots_adjust(top=0.95)
-        g.fig.suptitle(c)
-    elif kind == 'c1_n1_strip':
-        g =sns.catplot(x=n, y=c, data=df, kind='strip', alpha=.7, s=3)
-        g.fig.subplots_adjust(top=0.95)
-        g.fig.suptitle(c)
-    elif kind == 'c1_n1_violin':
-        g =sns.catplot(x=n, y=c, data=df, kind='violin', palette="coolwarm")
-        g.fig.subplots_adjust(top=0.95)
-        g.fig.suptitle(c)
-    elif kind == 'c1_n1_h1_violin':
-        g =sns.catplot(x=c, y=n, data=df, hue=hue, kind='violin', alpha=.7, split=True)
-        g.fig.subplots_adjust(top=0.95)
-        g.fig.suptitle(c)
-    plt.show()
+def reg_poly_fit(X, y, degree, plot=True):
+    xval = np.linspace(np.min(X), np.max(X), 100).reshape(-1, 1)
+    yval = {}
+    for n in range(1, degree+1):
+        model = make_pipeline(
+            PolynomialFeatures(degree=n),
+            LinearRegression(fit_intercept=True)
+        ).fit(X, y)
+        yval['poly'+str(n)] = np.ravel(model.predict(xval))
+    rtn = pd.DataFrame(data=yval, index=np.ravel(xval))
+    if plot:
+        color = sns.color_palette('Set2')
+        plt.scatter(X, y, c='k', alpha=0.2, label='data')
+        for i, c in enumerate(rtn.columns):
+                plt.plot(rtn.index, rtn[c], color=color[i], lw=3, alpha=.7, label=c)
+        plt.title(f'Reg Plot(Degree 1 ~ {degree})')
+        plt.xlabel('Features')
+        plt.ylabel('Target')
+        plt.legend()
+        plt.show()
+    return rtn
+
+def reg_poly_resid(X, y, degree, scoring='se', plot=True):
+    models = []
+    xval = X
+    yval = {}
+    for n in range(1, degree+1):
+        model = make_pipeline(
+            StandardScaler(),
+            PolynomialFeatures(degree=n),
+            LinearRegression(fit_intercept=True)
+        ).fit(X, y)
+        models.append(model)
+        if scoring == 'ae':
+            yval['poly'+str(n)] = np.abs(np.ravel(model.predict(xval) - y.values))
+        elif scoring == 'se':
+            yval['poly'+str(n)] = np.square(np.ravel(model.predict(xval) - y.values))
+        else:
+            yval['poly'+str(n)] = np.ravel(model.predict(xval) - y.values)
+    rtn = pd.DataFrame(data=yval, index=np.ravel(xval)).sort_index(ascending=True)    
+    if plot:
+        color = sns.color_palette('tab10')
+        for i, c in enumerate(rtn.columns):
+            plt.plot(rtn.index, rtn[c], color=color[i], alpha=.5, label=c)
+        plt.title(f'Reg Error(Degree 1 ~ {degree})')
+        plt.xlabel('Features')
+        plt.ylabel('Absolute Errors')
+        plt.legend()
+        plt.show()
+    return rtn
+
+import pandas as pd
+import numpy as np
+import seaborn as sns
+def feature_importance(df, model, sort=True, plot=True):
+    rtn = pd.DataFrame(data=np.array(model.feature_importances_), index=df.columns, columns=['importances'])
+    if sort:
+        rtn = rtn.sort_values(by='importances', ascending=False)
+    if plot:
+        sns.barplot(y=rtn.index, x=rtn.importances, palette='Set2')
+    return rtn
