@@ -264,3 +264,55 @@ def feature_importance(df, model, sort=True, plot=True):
     if plot:
         sns.barplot(y=rtn.index, x=rtn.importances, palette='Set2')
     return rtn
+
+
+import warnings
+warnings.filterwarnings(action='ignore')
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neural_network import MLPClassifier
+from sklearn.ensemble import BaggingClassifier, RandomForestClassifier, ExtraTreesClassifier
+from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, HistGradientBoostingClassifier
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
+from sklearn.model_selection import cross_validate, cross_val_score
+
+def cat_model_test(X, y, cv=10, sort=True):
+    models = {
+        'LogisticRegression' : LogisticRegression(),
+        'DecisionTreeClassifier' : DecisionTreeClassifier(),
+        'KNeighborsClassifier' : KNeighborsClassifier(),
+        'SVC' : SVC(),
+        'GaussianNB' : GaussianNB(),
+        'MLPClassifier' : MLPClassifier(),
+        'BaggingClassifier' : BaggingClassifier(),
+        'RandomForestClassifier' : RandomForestClassifier(),
+        'ExtraTreesClassifier' : ExtraTreesClassifier(),
+        'AdaBoostClassifier' : AdaBoostClassifier(),
+        'GradientBoostingClassifier, ' : GradientBoostingClassifier(),
+        'HistGradientBoostingClassifier' : HistGradientBoostingClassifier(),
+        'XGBClassifier' : XGBClassifier(eval_metric='mlogloss'),
+        'LGBMClassifier' : LGBMClassifier(),
+    }
+    
+    results = []
+    for name, model in models.items():
+        print(f'model_test : {name}')
+        test = cross_validate(
+            model,
+            X,
+            y,
+            scoring=('accuracy', 'f1_macro'),
+            cv=cv,
+            return_train_score=True,
+            # n_jobs=-1
+        )
+        test = pd.DataFrame(data=test)
+        test['model'] = name
+        results.append(test)
+    
+    rtn = pd.concat(results).groupby('model').mean()
+    return rtn.sort_values('test_f1_macro', ascending=False) if sort else rtn
