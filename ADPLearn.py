@@ -116,8 +116,6 @@ def eda_chi2(df, cat1, cat2, round=3):
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-%matplotlib inline
-
 def plot_decision_boundaries(X, y, model_class, **model_params):
     X = np.array(X)
     y = np.array(y).flatten()
@@ -179,7 +177,8 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.svm import SVR
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.neural_network import MLPRegressor
-from sklearn.ensemble import SGDRegressor, BaggingRegressor, RandomForestRegressor
+from sklearn.linear_model import SGDRegressor
+from sklearn.ensemble import BaggingRegressor, RandomForestRegressor
 from sklearn.ensemble import ExtraTreesRegressor, AdaBoostRegressor, GradientBoostingRegressor
 def reg_model_test(X, y, train_size=.75, sort=True):
     X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=train_size, random_state=13)
