@@ -137,6 +137,28 @@ def eda_cat_count(cat_array, round=3, sort=False, plot=False):
             )
     return rtn.sort_index() if sort else rtn
 
+def eda_hist(df, target, features):
+    ncol = 5 if len(features) > 5 else len(features)
+    nrow = int(len(features)/ncol+1)
+    fig, axs = plt.subplots(nrow, ncol, figsize=(12, 2.5*nrow), sharey=True)
+
+    sns.set(font_scale = 0.8)
+    for i, f in enumerate(features):
+        p = sns.histplot(
+            data = df,
+            x = f,
+            hue = target,
+            palette = 'Set2',
+            bins = 10,
+            multiple = 'stack',
+            stat = 'count',
+            ax = axs[int(i/5), i%5]
+            )
+        p.set_xlabel(f, fontsize = 10)
+        if i>0:
+            p.legend([],[], frameon=False)
+    plt.tight_layout()
+    
 def eda_round(df, round=3):
     rtn = df.copy()
     types = rtn.dtypes.values
@@ -148,16 +170,17 @@ def eda_round(df, round=3):
 
 from statsmodels.formula.api import ols
 from statsmodels.stats.anova import anova_lm
-from statsmodels.stats.multicomp import pairwise_tukeyhsd
+from statsmodels.sandbox.stats.multicomp import MultiComparison
+import scipy.stats as stats
 def eda_anova(df, groups, endog):
     model = ols(endog+'~ C('+groups+')', df).fit()
     al = anova_lm(model)
     print(al)
     if al.iloc[0, -1] < 0.05:
         tmp = df[[endog, groups]].dropna()
-        posthoc = pairwise_tukeyhsd(endog=tmp[endog], groups=tmp[groups], alpha=0.05)
-        print('\n', posthoc)
-    return al.iloc[0, -1]
+        comp = MultiComparison(df[endog], df[groups])
+        result = comp.allpairtest(stats.ttest_ind, method='bonf')
+        print('\n', result[0])
 
 def eda_chi2(df, cat1, cat2, round=3):
     contingency = pd.crosstab(df[cat1], df[cat2])
