@@ -121,7 +121,7 @@ def eda_features(df, round=3, sort=False, plot=False):
     if sort:
         rtn = rtn.sort_values('dtypes')
     if plot:
-        rtn.plot.bar(figsize=(12, 5), cmap=plt.cm.Set2)
+        rtn.plot.bar(figsize=(12, 5), cmap=plt.cm.Set1)
         plt.xticks(rotation=90)
         plt.show()
     return rtn
@@ -237,7 +237,7 @@ def eda_corr(df, target, round=3, sort=False, plot=False):
     if sort:
         rtn = rtn.sort_values('spearmanr', ascending=False)
     if plot:
-        rtn.plot.bar(figsize=(12, 5), cmap=plt.cm.Set2)
+        rtn.plot.bar(figsize=(12, 5), cmap=plt.cm.Set1)
         plt.xticks(rotation=90)
         plt.show()
     return rtn
@@ -253,7 +253,7 @@ def eda_hist(df, target, features):
             data = df,
             x = f,
             hue = target,
-            palette = 'Set2',
+            palette = palette,
             bins = 10,
             multiple = 'stack',
             stat = 'count',
@@ -323,7 +323,7 @@ def stat_vif(df, sort=False, plot=False):
     if sort:
         rtn = rtn.sort_values('VIF', ascending=False)
     if plot:
-        rtn.plot.bar(figsize=(12, 5), cmap=plt.cm.Set2)
+        rtn.plot.bar(figsize=(12, 5), cmap=plt.cm.Set1)
         plt.xticks(rotation=90)
         plt.show()
     return rtn
@@ -362,7 +362,7 @@ def pre_round(df, round=3):
 #########################################################################################################
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA, TruncatedSVD
-def plt_decompress(X, y, method='svd', ax=None, alpha=0.7):
+def plt_decompress(X, y=None, method='svd', ax=None, alpha=0.7):
     if method == 'svd':
         comp = TruncatedSVD(n_components=2)
     elif method == 'tsne':
@@ -381,6 +381,19 @@ def plt_decompress(X, y, method='svd', ax=None, alpha=0.7):
     for i, g in enumerate(groups):     
         idx = np.where(y==g)
         ax.scatter(X_comp[idx,0], X_comp[idx,1], s=30, color=colors[i], alpha=alpha)
+
+def plt_corr(df):
+    plt.figure(figsize=(12,7))
+    sns.heatmap(
+    data = df,
+    annot = True,
+    vmax = 1,
+    vmin = -1,
+    cmap = 'RdBu',
+    linewidths=.5,
+    fmt='.2g',
+    )
+    plt.show()
 
 def plt_hist(df, features, target=None):
     ncol = 5 if len(features) > 5 else len(features)
@@ -435,7 +448,7 @@ def reg_poly_fit(X, y, degree, plot=False):
     rtn = pd.DataFrame(data=yval, index=np.ravel(xval))
     if plot:
         plt.figure(figsize=(12, 5))
-        color = sns.color_palette('Set2')
+        color = sns.color_palette(palette)
         plt.scatter(X, y, c='k', alpha=0.2, label='data')
         for i, c in enumerate(rtn.columns):
                 plt.plot(rtn.index, rtn[c], color=color[i], lw=3, alpha=.7, label=c)
@@ -466,7 +479,7 @@ def reg_poly_resid(X, y, degree, scoring='se', plot=False):
     rtn = pd.DataFrame(data=yval, index=np.ravel(xval)).sort_index(ascending=True)    
     if plot:
         plt.figure(figsize=(12, 5))
-        color = sns.color_palette('Set2')
+        color = sns.color_palette(palette)
         for i, c in enumerate(rtn.columns):
             plt.bar(rtn.index, rtn[c]+(i*0.2), color=color[i], alpha=0.5, label=c, width=0.3)
         plt.title(f'Reg Error(Degree 1 ~ {degree})')
@@ -522,7 +535,7 @@ def show_feature_importance(model, columns, sort=False, plot=False):
     if sort:
         rtn = rtn.sort_values(by='importances', ascending=False)
     if plot:
-        rtn.plot.bar(figsize=(12, 5), cmap=plt.cm.Set2)
+        rtn.plot.bar(figsize=(12, 5), cmap=plt.cm.Set1)
         plt.show()
     return rtn
 
@@ -546,7 +559,7 @@ def show_decision_boundaries(X, y, decision_model, **model_params):
     y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
     xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.1), np.arange(y_min, y_max, 0.1))
     Z = model.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)
-    plt.contourf(xx, yy, Z, alpha=0.4, cmap=plt.cm.Set2)
+    plt.contourf(xx, yy, Z, alpha=0.4, cmap=plt.cm.Set1)
     plt.scatter(X[:, 0], X[:, 1], c=y, s=15, alpha=0.5, cmap=plt.cm.Set1)
     plt.xlabel(features[0])
     plt.ylabel(features[0])
