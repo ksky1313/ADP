@@ -98,7 +98,12 @@ def load_data(name):
         iris = load_iris()
         df_iris = pd.DataFrame(data=iris.data, columns=iris.feature_names)
         df_iris['target'] = iris.target
+        df_iris.columns = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'target']
         df = df_iris
+    elif name == 'diabetes':
+        df_diabetes = pd.read_csv('https://raw.githubusercontent.com/ksky1313/ADP/main/data/adp22_Q1.csv')
+        df_diabetes.rename(columns={'Outcome':'target'}, inplace=True)
+        df = df_diabetes
     else:
         print('Support Data = boston, cancer, iris')
         return
@@ -109,7 +114,7 @@ def load_data(name):
 #########################################################################################################
 # 데이터 탐색 - eda
 #########################################################################################################
-def eda_features(df, round=3, sort=False, plot=False):
+def eda_features(df, round=3, sort=False, plot=False, figsize=(12, 5)):
     rtn = pd.DataFrame(
         data={
             'dtypes':df.dtypes.values,
@@ -121,7 +126,7 @@ def eda_features(df, round=3, sort=False, plot=False):
     if sort:
         rtn = rtn.sort_values('dtypes')
     if plot:
-        rtn.plot.bar(figsize=(12, 5), cmap=plt.cm.Set1)
+        rtn.plot.bar(figsize=figsize, cmap=plt.cm.Set1)
         plt.xticks(rotation=90)
         plt.show()
     return rtn
@@ -151,7 +156,7 @@ def eda_range(df, round=3, sort=False, plot=False):
         plt.show()
     return rtn
 
-def eda_na(df, round=3, sort=False, plot=False):
+def eda_na(df, round=3, sort=False, plot=False, figsize=(12, 5)):
     rtn = pd.DataFrame(
         data={
             'dtypes':df.dtypes.values,
@@ -162,7 +167,7 @@ def eda_na(df, round=3, sort=False, plot=False):
     if sort:
         rtn = rtn.sort_values('na', ascending=False)
     if plot:
-        plt.figure(figsize=(12, 5))
+        plt.figure(figsize=figsize)
         plt.bar(rtn.index, rtn.na, color='#a1c9f4')
         for i in range(rtn.shape[0]):
             if rtn.iloc[i, 2] > 0:
@@ -171,7 +176,7 @@ def eda_na(df, round=3, sort=False, plot=False):
         plt.show()
     return rtn
 
-def eda_outlier(df, round=3, sort=False, plot=False):
+def eda_outlier(df, round=3, sort=False, plot=False, figsize=(12, 5)):
     rtn = pd.DataFrame(
         data={
             'dtypes':df.dtypes.values,
@@ -190,7 +195,7 @@ def eda_outlier(df, round=3, sort=False, plot=False):
     if sort:
         rtn = rtn.sort_values('noutlier', ascending=False)
     if plot:
-        plt.figure(figsize=(12, 5))
+        plt.figure(figsize=figsize)
         plt.bar(rtn.index, rtn.noutlier, color='#a1c9f4')
         for i in range(rtn.shape[0]):
             if rtn.iloc[i, 2] > 0:
@@ -218,7 +223,7 @@ def eda_cls_count(y, round=3, sort=False, plot=False, ax=None, title=None):
 
 import scipy.stats as stats
 from sklearn.preprocessing import OrdinalEncoder
-def eda_corr(df, target, round=3, sort=False, plot=False):
+def eda_corr(df, target, round=3, sort=False, plot=False, figsize=(12, 5)):
     tmp = df[df[target].notna()].copy()
     for c in df.columns:
         if tmp[c].dtypes in [ 'object', 'category' ]:
@@ -237,7 +242,7 @@ def eda_corr(df, target, round=3, sort=False, plot=False):
     if sort:
         rtn = rtn.sort_values('spearmanr', ascending=False)
     if plot:
-        rtn.plot.bar(figsize=(12, 5), cmap=plt.cm.Set1)
+        rtn.plot.bar(figsize=figsize, cmap=plt.cm.Set1)
         plt.xticks(rotation=90)
         plt.show()
     return rtn
@@ -263,7 +268,7 @@ def eda_hist(df, target, features):
             p.legend([],[], frameon=False)
     plt.tight_layout()
 
-def eda_feature_importance(X, y, type='reg', columns=None, sort=False, plot=False):
+def eda_feature_importance(X, y, type='reg', columns=None, sort=False, plot=False, figsize=(12, 5)):
     model1 = DecisionTreeClassifier().fit(X, y) if type=='cls' else DecisionTreeRegressor().fit(X, y)
     model2 = RandomForestClassifier().fit(X, y) if type=='cls' else RandomForestRegressor().fit(X, y)
     model3 = XGBClassifier(eval_metric='merror').fit(X, y) if type=='cls' else XGBRFRegressor(eval_metric='merror').fit(X, y)
@@ -279,7 +284,7 @@ def eda_feature_importance(X, y, type='reg', columns=None, sort=False, plot=Fals
     if sort:
         rtn = rtn.sort_values('mean', ascending=False)
     if plot:
-        rtn.iloc[:10,:-1].plot.bar(figsize=(12, 5), cmap=plt.cm.Set1)
+        rtn.iloc[:10,:-1].plot.bar(figsize=figsize, cmap=plt.cm.Set1)
         plt.xticks(rotation=90)
         plt.title('feature importance TOP 10')
         plt.show()
@@ -315,7 +320,7 @@ def stat_chi2(df, group1, group2, round=3):
     return pvalue, c.reset_index().rename(columns={'index':group1}).set_index(['Type', group1])
 
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-def stat_vif(df, sort=False, plot=False):
+def stat_vif(df, sort=False, plot=False, figsize=(12, 5)):
     rtn = pd.DataFrame(
         data = [ variance_inflation_factor(df.values, i) for i in range(df.shape[1]) ],
         columns = ['VIF'],
@@ -323,7 +328,7 @@ def stat_vif(df, sort=False, plot=False):
     if sort:
         rtn = rtn.sort_values('VIF', ascending=False)
     if plot:
-        rtn.plot.bar(figsize=(12, 5), cmap=plt.cm.Set1)
+        rtn.plot.bar(figsize=figsize, cmap=plt.cm.Set1)
         plt.xticks(rotation=90)
         plt.show()
     return rtn
@@ -362,7 +367,7 @@ def pre_round(df, round=3):
 #########################################################################################################
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA, TruncatedSVD
-def plt_decompress(X, y=None, method='svd', ax=None, alpha=0.7):
+def plt_decompress(X, y, method='svd', ax=None, alpha=0.7, title=None):
     if method == 'svd':
         comp = TruncatedSVD(n_components=2)
     elif method == 'tsne':
@@ -370,11 +375,14 @@ def plt_decompress(X, y=None, method='svd', ax=None, alpha=0.7):
     else:
         comp = PCA(n_components=2)
 
+    if title == None:
+        title = method
+        
     if ax == None:
         ax = plt
-        plt.title(method)
+        plt.title(title)
     else:
-        ax.set_title(method)
+        ax.set_title(title)
 
     groups = np.unique(y)
     X_comp = comp.fit_transform(X, y)
@@ -382,8 +390,8 @@ def plt_decompress(X, y=None, method='svd', ax=None, alpha=0.7):
         idx = np.where(y==g)
         ax.scatter(X_comp[idx,0], X_comp[idx,1], s=30, color=colors[i], alpha=alpha)
 
-def plt_corr(df):
-    plt.figure(figsize=(12,7))
+def plt_corr(df, figsize=(12, 5)):
+    plt.figure(figsize=figsize)
     sns.heatmap(
     data = df,
     annot = True,
@@ -436,7 +444,7 @@ def reg_equation(model, columns, name='model', round=3):
 
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures
-def reg_poly_fit(X, y, degree, plot=False):
+def reg_poly_fit(X, y, degree, plot=False, figsize=(12,5)):
     xval = np.linspace(np.min(X), np.max(X), 100).reshape(-1, 1)
     yval = {}
     for n in range(1, degree+1):
@@ -446,12 +454,12 @@ def reg_poly_fit(X, y, degree, plot=False):
         ).fit(X, y)
         yval['poly'+str(n)] = np.ravel(model.predict(xval))
     rtn = pd.DataFrame(data=yval, index=np.ravel(xval))
+    rtn.index.name = 'X'
     if plot:
-        plt.figure(figsize=(12, 5))
-        color = sns.color_palette(palette)
+        plt.figure(figsize=figsize)
         plt.scatter(X, y, c='k', alpha=0.2, label='data')
         for i, c in enumerate(rtn.columns):
-                plt.plot(rtn.index, rtn[c], color=color[i], lw=3, alpha=.7, label=c)
+                plt.plot(rtn.index, rtn[c], color=colors[i], lw=3, alpha=.7, label=c)
         plt.title(f'Reg Plot(Degree 1 ~ {degree})')
         plt.xlabel('Features')
         plt.ylabel('Target')
@@ -459,7 +467,7 @@ def reg_poly_fit(X, y, degree, plot=False):
         plt.show()
     return rtn
 
-def reg_poly_resid(X, y, degree, scoring='se', plot=False):
+def reg_poly_resid(X, y, degree, scoring='se', plot=False, figsize=(12,5)):
     models = []
     xval = X
     yval = {}
@@ -471,14 +479,15 @@ def reg_poly_resid(X, y, degree, scoring='se', plot=False):
         ).fit(X, y)
         models.append(model)
         if scoring == 'ae':
-            yval['poly'+str(n)] = np.abs(np.ravel(model.predict(xval) - y.values))
+            yval['poly'+str(n)] = np.abs(np.ravel(model.predict(xval) - y))
         elif scoring == 'se':
-            yval['poly'+str(n)] = np.square(np.ravel(model.predict(xval) - y.values))
+            yval['poly'+str(n)] = np.square(np.ravel(model.predict(xval) - y))
         else:
-            yval['poly'+str(n)] = np.ravel(model.predict(xval) - y.values)
+            yval['poly'+str(n)] = np.ravel(model.predict(xval) - y)
     rtn = pd.DataFrame(data=yval, index=np.ravel(xval)).sort_index(ascending=True)    
+    rtn.index.name = 'X'
     if plot:
-        plt.figure(figsize=(12, 5))
+        plt.figure(figsize=figsize)
         color = sns.color_palette(palette)
         for i, c in enumerate(rtn.columns):
             plt.bar(rtn.index, rtn[c]+(i*0.2), color=color[i], alpha=0.5, label=c, width=0.3)
@@ -492,7 +501,7 @@ def reg_poly_resid(X, y, degree, scoring='se', plot=False):
 #########################################################################################################
 # 모델 탐색 - test
 #########################################################################################################
-def explore_reg_model(X, y, cv=10, verbose=True, sort=False, plot=False):
+def explore_reg_model(X, y, cv=10, verbose=True, sort=False, plot=False, figsize=(15, 8)):
     models = reg_estimators
     results  = []
     for i, model in enumerate(models):
@@ -505,12 +514,12 @@ def explore_reg_model(X, y, cv=10, verbose=True, sort=False, plot=False):
     if sort:
         rtn = rtn.sort_values('fit_Time')
     if plot:
-        rtn.plot.bar(figsize=(15, 8), cmap=plt.cm.Set1)
+        rtn.plot.bar(figsize=figsize, cmap=plt.cm.Set1)
         plt.show()
     return rtn
 
 
-def explore_cls_model(X, y, cv=10, verbose=True, sort=False, plot=False):
+def explore_cls_model(X, y, cv=10, verbose=True, sort=False, plot=False, figsize=(15, 8)):
     models = cls_estimators
     results  = []
     for i, model in enumerate(models):
@@ -523,19 +532,19 @@ def explore_cls_model(X, y, cv=10, verbose=True, sort=False, plot=False):
     if sort:
         rtn = rtn.sort_values('fit_Time')
     if plot:
-        rtn.plot.bar(figsize=(15, 8), cmap=plt.cm.Set1)
+        rtn.plot.bar(figsize=figsize, cmap=plt.cm.Set1)
         plt.show()
     return rtn
 
 #########################################################################################################
 # 모형 시각화 - show
 #########################################################################################################
-def show_feature_importance(model, columns, sort=False, plot=False):
+def show_feature_importance(model, columns, sort=False, plot=False, figsize=(12, 5)):
     rtn = pd.DataFrame(data=np.array(model.feature_importances_), index=columns, columns=['importances'])
     if sort:
         rtn = rtn.sort_values(by='importances', ascending=False)
     if plot:
-        rtn.plot.bar(figsize=(12, 5), cmap=plt.cm.Set1)
+        rtn.plot.bar(figsize=figsize, cmap=plt.cm.Set1)
         plt.show()
     return rtn
 
@@ -684,13 +693,13 @@ def metric_cls_score(y_test, y_pred, title='model'):
     return rtn
 
 from sklearn.metrics import roc_auc_score, plot_roc_curve
-def metric_cls_auc_score(model, X_test, y_test, round=3, plot=True):
+def metric_cls_auc_score(model, X_test, y_test, round=3, plot=True, figsize=(12,5)):
     if y_test.nunique() > 2:
         auc_score = roc_auc_score(y_test, model.predict_proba(X_test), multi_class='ovr')
     else:
         auc_score = roc_auc_score(y_test, model.predict_proba(X_test)[:,1])
         if plot:
-            fig, ax = plt.subplots(figsize=(12,5))
+            fig, ax = plt.subplots(figsize=figsize)
             plot_roc_curve(model, X_test, y_test, ax=ax)
             plt.show()
     return np.round(auc_score, round)
