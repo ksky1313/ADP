@@ -68,8 +68,8 @@ cls_estimators = [
     AdaBoostClassifier(),
     HistGradientBoostingClassifier(),
     QuadraticDiscriminantAnalysis(),
-    GaussianProcessClassifier(1.0 * RBF(1.0)),
-    GaussianNB()
+    GaussianNB(),
+    # GaussianProcessClassifier(1.0 * RBF(1.0)),
 ]
 
 cls_bi_score = ['accuracy', 'precision', 'recall', 'f1']
