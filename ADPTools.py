@@ -362,7 +362,7 @@ def pre_round(df, round=3):
 #########################################################################################################
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA, TruncatedSVD
-def plt_decompress(X, y, method='svd', ax=None):
+def plt_decompress(X, y, method='svd', ax=None, alpha=0.7):
     if method == 'svd':
         comp = TruncatedSVD(n_components=2)
     elif method == 'tsne':
@@ -380,7 +380,7 @@ def plt_decompress(X, y, method='svd', ax=None):
     X_comp = comp.fit_transform(X, y)
     for i, g in enumerate(groups):     
         idx = np.where(y==g)
-        ax.scatter(X_comp[idx,0], X_comp[idx,1], s=30, color=colors[i], alpha=0.7)
+        ax.scatter(X_comp[idx,0], X_comp[idx,1], s=30, color=colors[i], alpha=alpha)
 
 def plt_hist(df, features, target=None):
     ncol = 5 if len(features) > 5 else len(features)
