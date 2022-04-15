@@ -79,8 +79,6 @@ palette = 'Set1'
 colors = sns.color_palette(palette)
 markers = ['o', 's', '^', 'x']
 
-plt.rcParams['figure.figsize'] = (12, 5)
-
 #########################################################################################################
 # 데이터 불러오기 - load
 ######################################################################################################### 
@@ -391,8 +389,10 @@ def plt_hist(df, features, target=None):
     sns.set(font_scale = 0.8)
     for i, f in enumerate(features):
         axs = ax[i%5] if nrow==1 else ax[int(i/5), i%5]
-        p = sns.histplot(data=df, x=f, palette=palette, bins=10, multiple ='stack', stat ='count', ax=axs)\
-            if target==None else sns.histplot(data=df, x=f, hue=target, palette=palette, bins=10, multiple ='stack', stat ='count', ax=axs)
+        if target==None:
+            p = sns.histplot(data=df, x=f, palette=palette, bins=10, multiple ='stack', stat ='count', ax=axs)
+        else:
+            p = sns.histplot(data=df, x=f, hue=target, palette=palette, bins=10, multiple ='stack', stat ='count', ax=axs)
         p.set_xlabel(f, fontsize = 10)
         p.set(ylabel=None)
         if i > 0:
