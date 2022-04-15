@@ -76,6 +76,9 @@ cls_estimators = [
 cls_bi_score = ['accuracy', 'precision', 'recall', 'f1']
 cls_mt_score = ['accuracy', 'precision_macro', 'recall_macro', 'f1_macro', 'precision_micro', 'recall_micro', 'f1_micro' ]
 
+palette = 'Set1'
+colors = sns.color_palette(palette)
+markers = ['o', 's', '^', 'x']
 
 
 #########################################################################################################
@@ -199,20 +202,19 @@ def eda_outlier(df, round=3, sort=False, plot=False):
     return rtn
 
 
-def eda_cls_count(cat_array, round=3, sort=False, plot=False):
-    cat = pd.Series(data=cat_array)
+def eda_cls_count(y, round=3, sort=False, plot=False, ax=None, title=None):
+    cat = pd.Series(data=y)
     tmp = cat.value_counts()
+    if plot :
+        if ax == None:
+            ax = plt
+            plt.title(title)
+        else:
+            ax.set_title(title)
+        ax.pie(x = tmp.values, labels = tmp.index, colors = colors, autopct = '%.2g%%', startangle = 90, wedgeprops={'width':0.8})
+        
     rtn = pd.DataFrame(data=tmp.values, index=tmp.index, columns=['count'])
     rtn['count%'] = np.round(rtn['count'] / cat.shape[0] * 100, round)
-    if plot :
-        plt.pie(
-            x = tmp.values,
-            labels = tmp.index,
-            colors = sns.color_palette('Set2'), 
-            autopct = '%.2f%%',
-            startangle = 90,
-            wedgeprops={'width':0.8}, # 도넛그래프
-            )
     return rtn.sort_index() if sort else rtn
 
 
@@ -333,7 +335,7 @@ def stat_vif(df, sort=False, plot=False):
 # 데이터 전처리 - pre
 #########################################################################################################
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, PowerTransformer, PolynomialFeatures
-def pre_scale(data, method, degree=None):
+def pre_scale(data, method, degree=None, bias=True):
     scaled_data = np.array(data).reshape(-1, 1) if data.ndim == 1 else data
     if method == 'minmax':
         scaled_data = MinMaxScaler().fit_transform(scaled_data)
@@ -344,7 +346,7 @@ def pre_scale(data, method, degree=None):
     elif method == 'log':
         scaled_data = np.log1p(np.array(scaled_data))
     if degree != None:
-        scaled_data = PolynomialFeatures(degree=degree, include_bias=False).fit_transform(scaled_data)
+        scaled_data = PolynomialFeatures(degree=degree, include_bias=bias).fit_transform(scaled_data)
     return scaled_data.ravel() if data.ndim == 1 else scaled_data
 
 def pre_round(df, round=3):
@@ -355,6 +357,60 @@ def pre_round(df, round=3):
             rtn[c] = np.round(df[c], round)
     rtn.fillna('', inplace=True)
     return rtn
+
+
+#########################################################################################################
+# 시각화 - plt
+#########################################################################################################
+from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA, TruncatedSVD
+def plt_decompress(X, y, method='svd', ax=None):
+    if method == 'svd':
+        comp = TruncatedSVD(n_components=2)
+    elif method == 'tsne':
+        comp = TSNE(n_components=2)
+    else:
+        comp = PCA(n_components=2)
+
+    if ax == None:
+        ax = plt
+        plt.title(method)
+    else:
+        ax.set_title(method)
+
+    groups = np.unique(y)
+    X_comp = comp.fit_transform(X, y)
+    for i, g in enumerate(groups):     
+        idx = np.where(y==g)
+        ax.scatter(X_comp[idx,0], X_comp[idx,1], s=30, color=colors[i], alpha=0.7)
+
+def plt_hist(df, features, target=None):
+    ncol = 5 if len(features) > 5 else len(features)
+    nrow = 1 if ncol < 5 else int(np.ceil(len(features)/ncol))
+    fig, ax = plt.subplots(nrow, ncol, figsize=(12, 3*nrow), sharey=True)
+    sns.set(font_scale = 0.8)
+    for i, f in enumerate(features):
+        axs = ax[i%5] if nrow==1 else ax[int(i/5), i%5]
+        p = sns.histplot(data=df, x=f, palette=palette, bins=10, multiple ='stack', stat ='count', ax=axs)\
+            if target==None else sns.histplot(data=df, x=f, hue=target, palette=palette, bins=10, multiple ='stack', stat ='count', ax=axs)
+        p.set_xlabel(f, fontsize = 10)
+        p.set(ylabel=None)
+        if i > 0:
+            p.legend([],[], frameon=False)
+    plt.tight_layout()
+
+def plt_kde(df, features):
+    ncol = 5 if len(features) > 5 else len(features)
+    nrow = 1 if ncol < 5 else int(np.ceil(len(features)/ncol))
+    fig, ax = plt.subplots(nrow, ncol, figsize=(12, 3*nrow))
+    sns.set(font_scale = 0.8)
+    for i, f in enumerate(features):
+        axs = ax[i%5] if nrow==1 else ax[int(i/5), i%5]
+        p = sns.kdeplot(data=df, x=f, shade=True, ax=axs)
+        p.set_xlabel(f, fontsize = 10)
+        p.set(ylabel=None)
+    plt.tight_layout()
+    
 
 #########################################################################################################
 # 회귀분석 - reg
