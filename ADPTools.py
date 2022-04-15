@@ -12,7 +12,6 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OrdinalEncoder
 from sklearn.model_selection import cross_validate
 
-
 #########################################################################################################
 # 공통 변수
 #########################################################################################################
@@ -80,6 +79,7 @@ palette = 'Set1'
 colors = sns.color_palette(palette)
 markers = ['o', 's', '^', 'x']
 
+plt.rcParams['figure.figsize'] = (12, 5)
 
 #########################################################################################################
 # 데이터 불러오기 - load
@@ -272,10 +272,10 @@ def eda_feature_importance(X, y, type='reg', columns=None, sort=False, plot=Fals
     model4 = LGBMClassifier().fit(X, y) if type=='cls' else LGBMRegressor().fit(X, y)
     rtn = pd.DataFrame(
         data={
-            model1.__class__.__name__:jj.pre_scale(model1.feature_importances_, 'minmax'),
-            model2.__class__.__name__:jj.pre_scale(model2.feature_importances_, 'minmax'),
-            model3.__class__.__name__:jj.pre_scale(model3.feature_importances_, 'minmax'),
-            model4.__class__.__name__:jj.pre_scale(model4.feature_importances_, 'minmax')},
+            model1.__class__.__name__:pre_scale(model1.feature_importances_, 'minmax'),
+            model2.__class__.__name__:pre_scale(model2.feature_importances_, 'minmax'),
+            model3.__class__.__name__:pre_scale(model3.feature_importances_, 'minmax'),
+            model4.__class__.__name__:pre_scale(model4.feature_importances_, 'minmax')},
         index = columns)
     rtn['mean'] = rtn.mean(axis=1)
     if sort:
