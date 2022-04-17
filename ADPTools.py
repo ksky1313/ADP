@@ -182,8 +182,10 @@ def eda_outlier(df, round=3, sort=False, plot=False):
         UL, LL = Q3+1.5*(Q3-Q1), Q1-1.5*(Q3-Q1)
         rtn.loc[c, 'noutlier'] = df.loc[(df[c] < LL) | (df[c] > UL), c].count() if isnum else 0
         rtn.loc[c, 'noutlier(%)'] = np.round((df.loc[(df[c]<LL)|(df[c]>UL), c].count()/df[c].count())*100, round)  if isnum else ''
+        rtn.loc[c, 'max'] = np.round(df[c].max(), round) if isnum else ''
         rtn.loc[c, 'top'] = np.round(Q3+1.5*(Q3-Q1), round) if isnum else ''
         rtn.loc[c, 'bottom'] = np.round(Q1-1.5*(Q3-Q1), round) if isnum else ''
+        rtn.loc[c, 'min'] = np.round(df[c].min(), round) if isnum else ''
         rtn.loc[c, 'ntop'] = np.sum(df[c] > UL) if isnum else ''
         rtn.loc[c, 'nbottom'] = np.sum(df[c] < LL) if isnum else ''
     if sort:
@@ -270,10 +272,10 @@ def eda_feature_importance(X, y, type='reg', columns=None, sort=False, plot=Fals
     model4 = LGBMClassifier().fit(X, y) if type=='cls' else LGBMRegressor().fit(X, y)
     rtn = pd.DataFrame(
         data={
-            model1.__class__.__name__:jj.pre_scale(model1.feature_importances_, 'minmax'),
-            model2.__class__.__name__:jj.pre_scale(model2.feature_importances_, 'minmax'),
-            model3.__class__.__name__:jj.pre_scale(model3.feature_importances_, 'minmax'),
-            model4.__class__.__name__:jj.pre_scale(model4.feature_importances_, 'minmax')},
+            model1.__class__.__name__: pre_scale(model1.feature_importances_, 'minmax'),
+            model2.__class__.__name__: pre_scale(model2.feature_importances_, 'minmax'),
+            model3.__class__.__name__: pre_scale(model3.feature_importances_, 'minmax'),
+            model4.__class__.__name__: pre_scale(model4.feature_importances_, 'minmax')},
         index = columns)
     rtn['mean'] = rtn.mean(axis=1)
     if sort:
